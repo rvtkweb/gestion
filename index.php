@@ -13,6 +13,8 @@ if (!isset($_SESSION['authenticated']) && !isset($_POST['password'])) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Gestión Revestika</title>
+        <!-- Evitar solicitud de favicon para resolver error 404 -->
+        <link rel="icon" href="data:,">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -216,6 +218,8 @@ if (!isset($_SESSION['authenticated'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión Revestika</title>
+    <!-- Evitar solicitud de favicon para resolver error 404 -->
+    <link rel="icon" href="data:,">
     <!-- Incluir jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -2032,76 +2036,7 @@ if (!isset($_SESSION['authenticated'])) {
     </div>
 
     <script>
-        // ======== DEBUG PARA IDENTIFICAR PROBLEMAS ========
-        window.addEventListener('load', function() {
-            // Solo diagnóstico aquí
-        });
-        // ======== DEFINICIÓN TEMPRANA DE FUNCIONES CRÍTICAS ========
-        window.showTab = function(tabName) {
-            console.log('🔄 showTab llamado:', tabName);
-            
-            try {
-                // Ocultar todas las pestañas
-                document.querySelectorAll('.tab-content').forEach(tab => {
-                    tab.classList.remove('active');
-                });
-                
-                // Quitar active de botones
-                document.querySelectorAll('.nav-tab').forEach(tab => {
-                    tab.classList.remove('active');
-                });
-                
-                // Mostrar pestaña objetivo
-                const targetTab = document.getElementById(tabName);
-                if (targetTab) {
-                    targetTab.classList.add('active');
-                    console.log('✅ Pestaña activada:', tabName);
-                } else {
-                    console.error('❌ Pestaña no encontrada:', tabName);
-                    return;
-                }
-                
-                // Activar botón correspondiente
-                const targetButton = document.querySelector(`[onclick*="showTab('${tabName}')"]`);
-                if (targetButton) {
-                    targetButton.classList.add('active');
-                }
-                
-                console.log('✅ showTab completado para:', tabName);
-                
-            } catch (error) {
-                console.error('❌ Error en showTab:', error);
-            }
-        };
-
-        window.changeCurrency = function(currency) {
-            console.log('💱 changeCurrency llamado:', currency);
-            // Tu lógica de cambio de moneda aquí
-        };
-
-        console.log('✅ Funciones críticas disponibles desde el inicio');
-        console.log('🔍 DIAGNÓSTICO:');
-        console.log('Dashboard elemento:', document.getElementById('dashboard'));
-        console.log('Botones moneda:', {
-            ARS: document.getElementById('currencyARS'),
-            USD: document.getElementById('currencyUSD')
-        });
-        console.log('Elementos totales:', {
-            totalIncome: document.getElementById('totalIncome'),
-            totalExpenses: document.getElementById('totalExpenses'),
-            netBalance: document.getElementById('netBalance')
-        });
-        
-        // Verificar si hay errores de JavaScript
-        if (typeof transactions === 'undefined') {
-            console.error('❌ Variable transactions no definida');
-        }
-        if (typeof updateDashboard !== 'function') {
-            console.error('❌ Función updateDashboard no definida');
-        }
-        
-        
-        // ======== VARIABLES GLOBALES ========
+        // ======== VARIABLES GLOBALES - DECLARADAS PRIMERO ========
         let transactions = [];
         let products = [];
         let categories = [];
@@ -2124,11 +2059,14 @@ if (!isset($_SESSION['authenticated'])) {
             historical: {}
         };
 
-        // ======== DECLARACIONES GLOBALES INMEDIATAS ========
-        // Agregar esto JUSTO DESPUÉS de las declaraciones de variables
+        // Constantes de tipos de cambio fijos para aportes específicos
+        const FIXED_EXCHANGE_RATES = {
+            '1er pago costa libre': 1135,
+            '2do pago costa libre': 1165
+        };
 
-        // Hacer showTab disponible inmediatamente
-        window.showTab = function(tabName) {
+        // ======== FUNCIONES PRINCIPALES ========
+        function showTab(tabName) {
             console.log('Mostrando pestaña:', tabName);
             
             try {
@@ -2191,18 +2129,13 @@ if (!isset($_SESSION['authenticated'])) {
             } catch (error) {
                 console.error('Error mostrando pestaña:', error);
             }
-        };
+        }
 
-        // Hacer changeCurrency disponible inmediatamente
-        window.changeCurrency = function(currency) {
+        function changeCurrency(currency) {
             console.log('💱 Cambiando moneda a:', currency);
             
             try {
-                if (typeof currentCurrency !== 'undefined') {
-                    currentCurrency = currency;
-                } else {
-                    window.currentCurrency = currency;
-                }
+                currentCurrency = currency;
                 
                 // Actualizar botones
                 const arsBtn = document.getElementById('currencyARS');
@@ -2229,82 +2162,19 @@ if (!isset($_SESSION['authenticated'])) {
             } catch (error) {
                 console.error('Error cambiando moneda:', error);
             }
-        };
-
-        console.log('✅ Funciones principales disponibles globalmente');
-
-        // Constantes de tipos de cambio fijos para aportes específicos
-        const FIXED_EXCHANGE_RATES = {
-            '1er pago costa libre': 1135,
-            '2do pago costa libre': 1165
-        };
-
-        // ======== FUNCIÓN showTab DEFINIDA TEMPRANO ========
-        function showTab(tabName) {
-            console.log('Mostrando pestaña:', tabName);
-            
-            try {
-                // Ocultar todas las pestañas
-                const tabs = document.querySelectorAll('.tab-content');
-                tabs.forEach(tab => tab.classList.remove('active'));
-                
-                // Quitar clase active de todos los botones de navegación
-                const navTabs = document.querySelectorAll('.nav-tab');
-                navTabs.forEach(tab => tab.classList.remove('active'));
-                
-                // Mostrar la pestaña seleccionada
-                const targetTab = document.getElementById(tabName);
-                if (targetTab) {
-                    targetTab.classList.add('active');
-                } else {
-                    console.error('Pestaña no encontrada:', tabName);
-                    return;
-                }
-                
-                // Activar el botón de navegación correspondiente
-                const targetButton = document.querySelector(`[onclick*="showTab('${tabName}')"]`);
-                if (targetButton) {
-                    targetButton.classList.add('active');
-                }
-                
-                // Actualizar contenido específico según la pestaña (SIN async en setTimeout)
-                setTimeout(() => {  // ✅ SIN async aquí
-                    try {
-                        if (tabName === 'dashboard') {
-                            updateDashboard();
-                        } else if (tabName === 'history') {
-                            updateTransactionsTable();
-                        } else if (tabName === 'products') {
-                            updateProductsList();
-                            updateCategoryList();
-                        } else if (tabName === 'stock') {
-                            updateStockDisplay();
-                            updateStockProductSelect();
-                        } else if (tabName === 'balances') {
-                            updateBalances();
-                        } else if (tabName === 'quotes') {
-                            updateProductSelects();
-                        } else if (tabName === 'investment') {
-                            updateInvestmentDisplay();
-                        } else if (tabName === 'income') {
-                            updateIncomeHistory();
-                            initializeFilters();
-                        } else if (tabName === 'expenses') {
-                            updateExpenseHistory();
-                            initializeFilters();
-                        } else if (tabName === 'taxes') {
-                            initializeTaxesTab(); // ✅ SIN await aquí
-                        }
-                    } catch (error) {
-                        console.error('Error actualizando contenido de pestaña:', tabName, error);
-                    }
-                }, 100);
-                
-            } catch (error) {
-                console.error('Error mostrando pestaña:', error);
-            }
-            window.showTab = showTab;
         }
+
+        // ======== HACER FUNCIONES DISPONIBLES GLOBALMENTE ========
+        window.showTab = showTab;
+        window.changeCurrency = changeCurrency;
+
+        // ======== DEBUG INICIAL ========
+        console.log('✅ Variables y funciones inicializadas correctamente');
+        console.log('✅ Variables definidas:', {
+            transactions: Array.isArray(transactions),
+            products: Array.isArray(products),
+            currentCurrency: currentCurrency
+        });
 
         // ======== FUNCIONES AUXILIARES CRÍTICAS ========
         function formatNumberForDisplay(number) {
