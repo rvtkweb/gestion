@@ -2621,18 +2621,44 @@ if (!isset($_SESSION['authenticated'])) {
                     filteredData = transactions.filter(t => t.date >= dateFrom && t.date <= dateTo);
                 }
 
-                // Resto del código permanece igual...
-                // PERO agregar verificaciones de elementos antes de actualizar:
+                // CALCULAR INGRESOS CON CONVERSIÓN DE MONEDA
+                let salesCashIncome = 0;
+                let salesDigitalIncome = 0;
+                let totalExpenses = 0;
+
+                // Calcular ingresos en efectivo
+                for (const transaction of filteredData.filter(t => t.type === 'income' && t.paymentMethod === 'cash')) {
+                    const convertedAmount = await convertAmountWithCriteria(transaction.amount, transaction.date, transaction.description, false);
+                    salesCashIncome += convertedAmount;
+                }
+
+                // Calcular ingresos digitales (incluyendo crédito)
+                for (const transaction of filteredData.filter(t => 
+                    t.type === 'income' && 
+                    t.paymentMethod === 'digital' &&
+                    (!t.creditDate || t.creditDate <= today)
+                )) {
+                    const convertedAmount = await convertAmountWithCriteria(transaction.amount, transaction.date, transaction.description, false);
+                    salesDigitalIncome += convertedAmount;
+                }
+
+                // Calcular gastos totales
+                for (const transaction of filteredData.filter(t => t.type === 'expense')) {
+                    const convertedAmount = await convertAmountWithCriteria(transaction.amount, transaction.date, transaction.description, false);
+                    totalExpenses += convertedAmount;
+                }
+
+                const totalIncome = salesCashIncome + salesDigitalIncome;
+                const netBalance = totalIncome - totalExpenses;
                 
                 const elements = {
                     'totalIncome': formatCurrencySync(totalIncome),
                     'totalIncomeCash': formatCurrencySync(salesCashIncome),
                     'totalIncomeBanking': formatCurrencySync(salesDigitalIncome),
                     'netBalance': formatCurrencySync(netBalance),
-                    // ... etc
                 };
 
-                // ✅ VERIFICAR QUE LOS ELEMENTOS EXISTEN
+                // ✅ VERIFICAR QUE LOS ELEMENTOS EXISTEN Y ACTUALIZAR
                 Object.keys(elements).forEach(id => {
                     const element = document.getElementById(id);
                     if (element) {
@@ -2642,7 +2668,7 @@ if (!isset($_SESSION['authenticated'])) {
                     }
                 });
 
-                // Resto del código...
+                console.log('✅ Dashboard actualizado correctamente');
                 
             } catch (error) {
                 console.error('❌ Error actualizando dashboard:', error);
@@ -5331,10 +5357,10 @@ if (!isset($_SESSION['authenticated'])) {
 
         // ======== FUNCIONES DE RESPALDO ========
         
-        function forceRefresh() {
+        async function forceRefresh() {
             console.log('Forzando actualización...');
             try {
-                updateAllDisplays();
+                await updateAllDisplaysWithCurrency();
                 console.log('Actualización forzada completada');
             } catch (error) {
                 console.error('Error en actualización forzada:', error);
