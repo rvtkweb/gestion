@@ -1652,7 +1652,19 @@ if (!isset($_SESSION['authenticated'])) {
             </div>
 
             <div class="quote-total" id="quoteTotal" style="display: none;">
-                <h3>Total: $<span id="quoteTotalAmount">0</span></h3>
+                <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0;">Subtotal: $<span id="quoteSubtotalAmount">0</span></h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <label>💸 Descuento (%):</label>
+                        <input type="number" id="quoteDiscount" min="0" max="100" step="0.1" value="0" 
+                               style="width: 70px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;" 
+                               oninput="updateQuoteTotal()">
+                    </div>
+                </div>
+                <div id="discountDisplay" style="display: none; margin-bottom: 10px;">
+                    <p style="color: #e74c3c; font-weight: bold;">Descuento: -$<span id="discountAmount">0</span></p>
+                </div>
+                <h3 style="color: #B8860B;">Total Final: $<span id="quoteTotalAmount">0</span></h3>
                 <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
                     <button type="button" class="btn" onclick="generateRevestikaQuote()" 
                             style="background: linear-gradient(135deg, #B8860B 0%, #DAA520 100%); flex: 1;">
@@ -4482,17 +4494,43 @@ if (!isset($_SESSION['authenticated'])) {
                     container.appendChild(div);
                 });
                 
+                updateQuoteTotal();
+                
+            } catch (error) {
+                console.error('Error actualizando display de presupuesto:', error);
+            }
+        }
+
+        function updateQuoteTotal() {
+            try {
                 const quoteTotal = document.getElementById('quoteTotal');
+                const quoteSubtotalAmount = document.getElementById('quoteSubtotalAmount');
                 const quoteTotalAmount = document.getElementById('quoteTotalAmount');
+                const discountDisplay = document.getElementById('discountDisplay');
+                const discountAmount = document.getElementById('discountAmount');
+                const discountInput = document.getElementById('quoteDiscount');
+                
+                const subtotal = quoteItems.reduce((sum, item) => sum + item.total, 0);
+                const discountPercent = parseFloat(discountInput?.value || 0);
+                const discountValue = (subtotal * discountPercent) / 100;
+                const finalTotal = subtotal - discountValue;
                 
                 if (quoteItems.length > 0) {
                     if (quoteTotal) quoteTotal.style.display = 'block';
-                    if (quoteTotalAmount) quoteTotalAmount.textContent = totalAmount.toFixed(2);
+                    if (quoteSubtotalAmount) quoteSubtotalAmount.textContent = subtotal.toFixed(2);
+                    if (quoteTotalAmount) quoteTotalAmount.textContent = finalTotal.toFixed(2);
+                    
+                    if (discountPercent > 0) {
+                        if (discountDisplay) discountDisplay.style.display = 'block';
+                        if (discountAmount) discountAmount.textContent = discountValue.toFixed(2);
+                    } else {
+                        if (discountDisplay) discountDisplay.style.display = 'none';
+                    }
                 } else {
                     if (quoteTotal) quoteTotal.style.display = 'none';
                 }
             } catch (error) {
-                console.error('Error actualizando display de presupuesto:', error);
+                console.error('Error actualizando total del presupuesto:', error);
             }
         }
 
@@ -6189,6 +6227,9 @@ if (!isset($_SESSION['authenticated'])) {
                 address = '',
                 date,
                 items,
+                subtotal,
+                discountPercent = 0,
+                discountAmount = 0,
                 total,
                 quoteNumber
             } = quoteData;
@@ -6348,17 +6389,19 @@ if (!isset($_SESSION['authenticated'])) {
                     .products-table th {
                         background: #f8f8f8;
                         border: 1px solid #333;
-                        padding: 12px 8px;
+                        padding: 6px 8px;
                         text-align: center;
                         font-weight: 600;
                         color: #333;
+                        line-height: 1.2;
                     }
                     
                     .products-table td {
                         border: 1px solid #333;
-                        padding: 12px 8px;
+                        padding: 6px 8px;
                         text-align: center;
                         vertical-align: middle;
+                        line-height: 1.2;
                     }
                     
                     .products-table .product-name {
@@ -6522,17 +6565,37 @@ if (!isset($_SESSION['authenticated'])) {
                                             <td class="amount">$${formatNumberForDisplay(item.total)}</td>
                                         </tr>
                                     `).join('')}
-                                    <!-- Empty rows to match the design -->
-                                    ${Array(Math.max(0, 8 - items.length)).fill('').map(() => `
-                                        <tr style="height: 40px;">
+                                    <!-- Empty rows (máximo 7 productos) -->
+                                    ${Array(Math.max(0, 7 - items.length)).fill('').map(() => `
+                                        <tr style="height: 25px;">
                                             <td>&nbsp;</td>
                                             <td>&nbsp;</td>
                                             <td>&nbsp;</td>
                                             <td>&nbsp;</td>
                                         </tr>
                                     `).join('')}
+                                    <!-- Subtotal row -->
+                                    <tr style="border-top: 1px solid #666;">
+                                        <td colspan="3"><strong>Subtotal</strong></td>
+                                        <td class="amount"><strong>$${formatNumberForDisplay(subtotal)}</strong></td>
+                                    </tr>
+                                    <!-- Discount row (only if discount > 0) -->
+                                    ${discountPercent > 0 ? `
+                                        <tr style="color: #e74c3c;">
+                                            <td colspan="3"><strong>Descuento (${discountPercent}%)</strong></td>
+                                            <td class="amount"><strong>-$${formatNumberForDisplay(discountAmount)}</strong></td>
+                                        </tr>
+                                    ` : `
+                                        <tr style="height: 25px;">
+                                            <td>&nbsp;</td>
+                                            <td>&nbsp;</td>
+                                            <td>&nbsp;</td>
+                                            <td>&nbsp;</td>
+                                        </tr>
+                                    `}
+                                    <!-- Total row -->
                                     <tr class="total-row">
-                                        <td colspan="3"><strong>Total</strong></td>
+                                        <td colspan="3"><strong>Total Final</strong></td>
                                         <td class="amount"><strong>$${formatNumberForDisplay(total)}</strong></td>
                                     </tr>
                                 </tbody>
@@ -6593,13 +6656,16 @@ if (!isset($_SESSION['authenticated'])) {
                 const phone = document.getElementById('quotePhone')?.value || 'N/A';
                 const email = document.getElementById('quoteEmail')?.value || 'N/A';
                 const address = document.getElementById('quoteAddress')?.value || '';
+                const discountPercent = parseFloat(document.getElementById('quoteDiscount')?.value || 0);
                 
                 if (!customer || quoteItems.length === 0) {
                     alert('Por favor completa los datos del cliente y agrega al menos un producto');
                     return;
                 }
                 
-                const totalAmount = quoteItems.reduce((sum, item) => sum + item.total, 0);
+                const subtotal = quoteItems.reduce((sum, item) => sum + item.total, 0);
+                const discountAmount = (subtotal * discountPercent) / 100;
+                const totalAmount = subtotal - discountAmount;
                 const quoteNumber = generateQuoteNumber();
                 
                 const quoteData = {
@@ -6609,6 +6675,9 @@ if (!isset($_SESSION['authenticated'])) {
                     address,
                     date,
                     items: quoteItems,
+                    subtotal: subtotal,
+                    discountPercent: discountPercent,
+                    discountAmount: discountAmount,
                     total: totalAmount,
                     quoteNumber
                 };
@@ -6623,6 +6692,7 @@ if (!isset($_SESSION['authenticated'])) {
                 
                 // Limpiar formulario
                 document.getElementById('quoteForm').reset();
+                document.getElementById('quoteDiscount').value = 0;
                 quoteItems = [];
                 updateQuoteItemsDisplay();
                 setTodayDates();
@@ -6649,13 +6719,16 @@ if (!isset($_SESSION['authenticated'])) {
                 const phone = document.getElementById('quotePhone')?.value || 'N/A';
                 const email = document.getElementById('quoteEmail')?.value || 'N/A';
                 const address = document.getElementById('quoteAddress')?.value || '';
+                const discountPercent = parseFloat(document.getElementById('quoteDiscount')?.value || 0);
                 
                 if (!customer || quoteItems.length === 0) {
                     alert('Por favor completa los datos del cliente y agrega al menos un producto');
                     return;
                 }
                 
-                const totalAmount = quoteItems.reduce((sum, item) => sum + item.total, 0);
+                const subtotal = quoteItems.reduce((sum, item) => sum + item.total, 0);
+                const discountAmount = (subtotal * discountPercent) / 100;
+                const totalAmount = subtotal - discountAmount;
                 const quoteNumber = generateQuoteNumber();
                 
                 const quoteData = {
@@ -6665,6 +6738,9 @@ if (!isset($_SESSION['authenticated'])) {
                     address,
                     date,
                     items: quoteItems,
+                    subtotal: subtotal,
+                    discountPercent: discountPercent,
+                    discountAmount: discountAmount,
                     total: totalAmount,
                     quoteNumber
                 };
@@ -6711,6 +6787,7 @@ if (!isset($_SESSION['authenticated'])) {
                             
                             // Limpiar formulario
                             document.getElementById('quoteForm').reset();
+                            document.getElementById('quoteDiscount').value = 0;
                             quoteItems = [];
                             updateQuoteItemsDisplay();
                             setTodayDates();
